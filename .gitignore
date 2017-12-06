@@ -1,0 +1,4 @@
+build/
+src/**/*.o
+src/**/*.iso
+target/

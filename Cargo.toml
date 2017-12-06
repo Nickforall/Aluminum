@@ -1,0 +1,10 @@
+[package]
+name = "aluminum"
+version = "0.1.0"
+authors = ["Nick Vernij <hello@nickforall.nl>"]
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+rlibc = "1.0"
