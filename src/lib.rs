@@ -1,17 +1,89 @@
 #![feature(lang_items)]
+#![feature(asm)]
+#![feature(const_fn)]
+#![feature(naked_functions)]
+#![feature(core_intrinsics)]
 #![no_std]
 
 mod drivers;
+#[macro_use]
+mod cpu;
+mod kernel;
+#[macro_use]
+mod macros;
 
 extern crate rlibc;
+extern crate x86;
+extern crate spin;
+#[macro_use]
+extern crate lazy_static;
+
+use cpu::idt;
+use x86::shared::io::{inb};
+use kernel::KernelContext;
+
+lazy_static! {
+    pub static ref Context: KernelContext = KernelContext::new();
+}
 
 #[no_mangle]
 pub extern fn kmain() {
     use drivers::vga;
     use drivers::vga::Color::{Black, LightGreen};
 
-    let mut screen = vga::VgaScreen::defaults();
-    screen.write("Welcome to, Aluminum Microkernel Experiment.");
+    //let mut screen = Context.vga;
+    //screen.write("Welcome to, Nick's Aluminum Microkernel Experiment (v0.1).\n");
+    println!("Welcome to, Nick's Aluminum Microkernel Experiment (v0.1).");
+
+    cpu::pic::remap();
+    println!("PIC initialized.");
+
+    extern {
+        fn vga_print_error(i: u16);
+    }
+
+    // IRQ0 (0) on PIC1 (32), so IDT index is 32
+    let timer = make_idt_entry!(isr32, {
+        cpu::pic::eoi_for(32);
+    });
+
+    let gpf = make_idt_entry!(isr13, {
+        cpu::pic::eoi_for(13);
+    });
+
+    let pf = make_idt_entry!(isr14, {
+        cpu::pic::eoi_for(14);
+    });
+
+    let kb = make_idt_entry!(isr33, {
+        unsafe { 
+            let x = inb(0x60); 
+            let mut kb = Context.keyboard.lock();
+            // kb.get_char(str::from_utf8(x))
+            use ::core::str;
+
+            let c = kb.get_char(x) as u8;
+
+            print!(str::from_utf8(&[c]).unwrap());
+        };
+
+
+        cpu::pic::eoi_for(60);
+    });
+
+    Context.idt.set_handler(32, timer);
+    Context.idt.set_handler(33, kb);
+    Context.idt.set_handler(13, gpf);
+    Context.idt.set_handler(14, pf);
+
+    Context.idt.enable_interrupts();
+
+    println!("Interrupts enabled.");
+
+    println!("Aluminum has booted.");
+    
+
+    loop {};
 }
 
 #[lang = "eh_personality"] 

@@ -33,7 +33,7 @@ start:
 bits 64
 long_mode_start:
     ; load 0 into all data segment registers
-    mov ax, 0
+    mov ax, gdt64.data
     mov ss, ax
     mov ds, ax
     mov es, ax
@@ -57,6 +57,8 @@ gdt64:
     dq 0 ; zero entry
 .code: equ $ - gdt64 ; new
     dq (1<<43) | (1<<44) | (1<<47) | (1<<53) ; code segment
+.data: equ $ - gdt64
+    dq (1<<44) | (1<<47) | (1<<41) ; data segment
 .pointer:
     dw $ - gdt64 - 1
     dq gdt64

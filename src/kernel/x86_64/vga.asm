@@ -3,7 +3,7 @@ global vga_clear
 
 section .text
 vga_print_error:
-    call vga_clear
+    ; call vga_clear
 
     mov dword [0xb8000], 'E' | (0xC | 0x0 << 4) << 8
     mov dword [0xb8002], 'R' | (0xC | 0x0 << 4) << 8

@@ -22,7 +22,7 @@ run: $(iso)
 	@qemu-system-x86_64 -cdrom $(iso) -s
 
 debug: $(iso)
-	@qemu-system-x86_64 -cdrom $(iso) -s -d cpu_reset
+	@qemu-system-x86_64 -cdrom $(iso) -s -d cpu_reset -no-reboot
 
 iso: $(iso)
 

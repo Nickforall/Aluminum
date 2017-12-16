@@ -1,3 +1,6 @@
+use core::fmt;
+use core::fmt::Write;
+
 static VGA_ADDRESS: u32 = 0xb8000;
 
 static VGA_WIDTH  : u16 = 80;
@@ -6,7 +9,6 @@ static VGA_HEIGHT : u16 = 24;
 extern {
     fn vga_print_error(i: u16);
 }
-
 
 pub enum Color {
     Black       = 0,
@@ -82,25 +84,33 @@ impl VgaScreen {
     /// The main way to write to the vga buffer, updates position and accepts strings (!)
     pub fn write(&mut self, s: &str) {
         for byte in s.bytes() {
-            if byte as char == '\n' {
-                self.newline();
-                continue;
-            }
+            self.write_byte(byte)
+        }
+    }
 
-            unsafe {
-                self.putchar(self.position.x, self.position.y, make_entry(
-                    byte as char,
-                    Color::LightGreen,
-                    Color::Black
-                ));
-            }
+    pub fn write_byte(&mut self, byte: u8) {
+        if byte as char == '\n' {
+            self.newline();
+            return;
+        }
 
-            self.position.x += 1;
+        if byte as char == '\0' {
+            return;
+        }
 
-            if self.position.x >= self.width {
-                self.position.x = 0;
-                self.position.y += 1;
-            }
+        unsafe {
+            self.putchar(self.position.x, self.position.y, make_entry(
+                byte as char,
+                Color::LightGreen,
+                Color::Black
+            ));
+        }
+
+        self.position.x += 1;
+
+        if self.position.x >= self.width {
+            self.position.x = 0;
+            self.position.y += 1;
         }
     }
 
@@ -112,5 +122,15 @@ impl VgaScreen {
                 Color::Black
             ));
         }
+    }
+}
+
+impl Write for VgaScreen {
+    fn write_str(&mut self, s: &str) -> Result<(), fmt::Error> {
+        for b in s.bytes() {
+            self.write_byte(b);
+        }
+
+        Ok(())
     }
 }
