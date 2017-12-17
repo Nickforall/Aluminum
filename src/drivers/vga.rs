@@ -40,8 +40,49 @@ struct Position {
 }
 
 impl Position {
-    pub fn new() -> Position {
-        Position { x: 0, y: 0 }
+    pub fn new(enable_cursor: bool) -> Position {
+        let pos = Position { x: 0, y: 0 };
+        
+        if enable_cursor {
+            // pos.enable_cursor();
+        } 
+
+        pos
+    }
+
+    pub fn enable_cursor(&self) {
+        // TODO: This one also doesn't work..
+        unimplemented!();
+
+        use x86::shared::io::{inb, outb};
+
+        unsafe {
+            outb(0x3D4, 0x0a);
+            let start = inb(0x3d5) & 0x1f;
+
+            outb(0x3d4, 0x0a);
+            outb(0x3d5, start | 0x20);
+        }
+    }
+
+    pub fn get_buffer_pos(&self, screen_width: u16) -> u16 {
+        self.y * screen_width + self.x
+    }
+
+    pub fn update_cursor(&self, screen_width: u16) {
+        // TODO: This one only worked for my first keyboard interrupt..., after that cursor disappears
+        // Also, it was one x too high
+        unimplemented!();   
+
+        use x86::shared::io::outb;
+
+        let pos = self.get_buffer_pos(screen_width);
+        unsafe {
+            outb(0x3D4, 0x0F);
+            outb(0x3D5, (pos & 0xFF) as u8);
+            outb(0x3D4, 0x0E);
+            outb(0x3D5, ((pos >> 8) & 0xFF) as u8);
+        }
     }
 }
 
@@ -62,7 +103,7 @@ impl VgaScreen {
             width: width,
             height: height,
             address: address,
-            position: Position::new(),
+            position: Position::new(true),
         }
     }
 
@@ -112,6 +153,8 @@ impl VgaScreen {
             self.position.x = 0;
             self.position.y += 1;
         }
+
+        // self.position.update_cursor(self.width);
     }
 
     pub fn panic(&self, c: char) {

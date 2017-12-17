@@ -18,7 +18,6 @@ extern crate spin;
 #[macro_use]
 extern crate lazy_static;
 
-use cpu::idt;
 use x86::shared::io::{inb};
 use kernel::KernelContext;
 
@@ -28,9 +27,6 @@ lazy_static! {
 
 #[no_mangle]
 pub extern fn kmain() {
-    use drivers::vga;
-    use drivers::vga::Color::{Black, LightGreen};
-
     //let mut screen = Context.vga;
     //screen.write("Welcome to, Nick's Aluminum Microkernel Experiment (v0.1).\n");
     println!("Welcome to, Nick's Aluminum Microkernel Experiment (v0.1).");
