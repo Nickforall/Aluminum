@@ -18,4 +18,10 @@ impl KernelContext {
             vga: Mutex::new(vga::VgaScreen::defaults()),
         }
     }
+
+    pub fn load_error_screen(&self) {
+        let mut screen = self.vga.lock();
+        screen.set_color(vga::Color::White, vga::Color::Red);
+        screen.fill(vga::Color::White, vga::Color::Red);
+    }
 }

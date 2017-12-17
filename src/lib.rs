@@ -3,14 +3,16 @@
 #![feature(const_fn)]
 #![feature(naked_functions)]
 #![feature(core_intrinsics)]
+#![feature(abi_x86_interrupt)]
 #![no_std]
+
+#[macro_use]
+mod macros;
 
 mod drivers;
 #[macro_use]
 mod cpu;
 mod kernel;
-#[macro_use]
-mod macros;
 
 extern crate rlibc;
 extern crate x86;
@@ -34,21 +36,8 @@ pub extern fn kmain() {
     cpu::pic::remap();
     println!("PIC initialized.");
 
-    extern {
-        fn vga_print_error(i: u16);
-    }
-
-    // IRQ0 (0) on PIC1 (32), so IDT index is 32
     let timer = make_idt_entry!(isr32, {
         cpu::pic::eoi_for(32);
-    });
-
-    let gpf = make_idt_entry!(isr13, {
-        cpu::pic::eoi_for(13);
-    });
-
-    let pf = make_idt_entry!(isr14, {
-        cpu::pic::eoi_for(14);
     });
 
     let kb = make_idt_entry!(isr33, {
@@ -63,14 +52,14 @@ pub extern fn kmain() {
             print!(str::from_utf8(&[c]).unwrap());
         };
 
-
+        
         cpu::pic::eoi_for(60);
     });
 
     Context.idt.set_handler(32, timer);
     Context.idt.set_handler(33, kb);
-    Context.idt.set_handler(13, gpf);
-    Context.idt.set_handler(14, pf);
+
+    cpu::exceptions::register_exception_interrupts();
 
     Context.idt.enable_interrupts();
 

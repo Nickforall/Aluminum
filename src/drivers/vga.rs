@@ -4,12 +4,13 @@ use core::fmt::Write;
 static VGA_ADDRESS: u32 = 0xb8000;
 
 static VGA_WIDTH  : u16 = 80;
-static VGA_HEIGHT : u16 = 24;
+static VGA_HEIGHT : u16 = 25;
 
 extern {
     fn vga_print_error(i: u16);
 }
 
+#[derive(Clone)]
 pub enum Color {
     Black       = 0,
     Blue        = 1,
@@ -29,8 +30,8 @@ pub enum Color {
     White       = 15,
 }
 
-pub fn make_entry(c: char, fg: Color, bg: Color) -> u16 {
-    let color = (fg as u16) | (bg as u16) << 4;
+pub fn make_entry(c: char, fg: &Color, bg: &Color) -> u16 {
+    let color = (fg.clone() as u16) | (bg.clone() as u16) << 4;
     return (c as u16) | color << 8;
 }
 
@@ -91,19 +92,23 @@ pub struct VgaScreen {
     height: u16,
     address: u32,
     position: Position,
+    fg: Color,
+    bg: Color,
 }
 
 impl VgaScreen {
     pub fn defaults() -> Self {
-        Self::new(VGA_WIDTH, VGA_HEIGHT, VGA_ADDRESS)
+        Self::new(VGA_WIDTH, VGA_HEIGHT, VGA_ADDRESS, Color::LightGreen, Color::Black)
     }
 
-    pub fn new(width: u16, height: u16, address: u32) -> Self {
+    pub fn new(width: u16, height: u16, address: u32, fg: Color, bg: Color) -> Self {
         VgaScreen {
             width: width,
             height: height,
             address: address,
             position: Position::new(true),
+            fg: fg,
+            bg: bg,
         }
     }
 
@@ -119,6 +124,11 @@ impl VgaScreen {
 
         let offset = (y * VGA_WIDTH * 2 + x * 2) as u32;
 
+        *((self.address + offset) as *mut u16) = entry;
+    }
+
+    pub unsafe fn put_buffer_char(&self, index: u16, entry: u16) {
+        let offset = index as u32;
         *((self.address + offset) as *mut u16) = entry;
     }
 
@@ -142,8 +152,8 @@ impl VgaScreen {
         unsafe {
             self.putchar(self.position.x, self.position.y, make_entry(
                 byte as char,
-                Color::LightGreen,
-                Color::Black
+                &self.fg,
+                &self.bg
             ));
         }
 
@@ -161,9 +171,31 @@ impl VgaScreen {
         unsafe {
             vga_print_error(make_entry(
                 c,
-                Color::LightRed,
-                Color::Black
+                &Color::Black,
+                &Color::LightRed,                
             ));
+        }
+    }
+
+    pub fn set_color(&mut self, fg: Color, bg: Color) {
+        self.fg = fg;
+        self.bg = bg;
+    }
+
+    pub fn fill(&mut self, fg: Color, bg: Color) {
+        let entry = make_entry(' ', &fg, &bg);
+
+        self.position.x = 0;
+        self.position.y = 0;
+
+        let mut i = 0;
+
+        while i < self.width * self.height {
+            unsafe {
+                self.put_buffer_char(i * 2, entry);
+            }
+
+            i += 1;
         }
     }
 }
