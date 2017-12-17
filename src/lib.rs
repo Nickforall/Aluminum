@@ -49,10 +49,15 @@ pub extern fn kmain() {
 
             let c = kb.get_char(x) as u8;
 
-            print!(str::from_utf8(&[c]).unwrap());
+            print!("{}", str::from_utf8(&[c]).unwrap());
         };
 
-        
+        // used for testing exception handlers
+        /*unsafe {
+            asm!("mov dx, 0; div dx" ::: "ax", "dx" : "volatile", "intel")
+        }*/
+
+
         cpu::pic::eoi_for(60);
     });
 

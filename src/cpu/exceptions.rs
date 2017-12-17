@@ -1,11 +1,26 @@
 use super::idt::IdtRef;
 use super::pic;
 
+#[derive(Debug)]
+#[repr(C)]
+struct ExceptionStackFrame {
+    instruction_pointer: u64,
+    code_segment: u64,
+    cpu_flags: u64,
+    stack_pointer: u64,
+    stack_segment: u64,
+}
+
 pub fn register_exception_interrupts() {
     let divzerof = make_idt_entry!(isr0, {
         ::Context.load_error_screen();
 
-        println!("Divided by zero!!!");
+        let stack_frame: &ExceptionStackFrame;
+        unsafe {
+            asm!("mov $0, rsp" : "=r"(stack_frame) ::: "intel");
+        }
+
+        println!("Divided by zero!!!\n{:#?}", stack_frame);
         unsafe { asm!("hlt") };
 
         pic::eoi_for(0);
